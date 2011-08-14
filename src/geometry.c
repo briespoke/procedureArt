@@ -379,7 +379,7 @@ void geometry_CheckCollision(struct geometry_LineSegment * line, struct geometry
 					{
 						* resultX = tmpX;
 						* resultY = tmpY;
-						printf("Collision! %d %f %f\n", line->id, tmpX, line->x1);
+						printf("Collision! %d %f %f\n", line->id, tmpX, tmpY);
 					}
 				}
 

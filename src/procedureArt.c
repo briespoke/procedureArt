@@ -15,9 +15,12 @@
 #include <stdlib.h>
 #include "geometry.h"
 #include <limits.h>
+#include <math.h>
 
 #define ROTATE_FACTOR 0.01
-
+#define BRANCHES 10
+#define MAX_LINES 500
+int numLines = 0;
 float rotate1 = 0.0;
 float rotate2 = 0.0;
 
@@ -74,36 +77,110 @@ void display(Uint32 catchUp)
 
 float randRange(float lower, float upper)
 {
+	if (lower > upper)
+	{
+		float tmp;
+
+		tmp = upper;
+		upper = lower;
+		lower = tmp;
+	}
 	float value = rand() * 1.0;
 	float valueFloat = value / RAND_MAX;
 	return (upper - lower) * valueFloat + lower;
 }
-void addLine()
+struct geometry_LineSegment * addLine(float x1, float y1, float x2, float y2)
+{
+	struct geometry_LineSegment * line = geometry_LineSegment_construct(x1, y1, x2, y2);
+	geometry_CheckCollision(line, geometry_GetRootNode(), &x2, &y2);
+
+	if (x2 != line->x2)
+	{
+		line->x2 = x2;
+		line->y2 = y2;
+	}
+	geometry_addLine(line);
+	return line;
+}
+struct geometry_LineSegment * addLineRandom()
 {
 	float x1 = randRange(-5.0, 5.0);
 	float y1 = randRange(-5.0, 5.0);
 	float x2 = randRange(-5.0, 5.0);
 	float y2 = randRange(-5.0, 5.0);
-	struct geometry_LineSegment * line = geometry_LineSegment_construct(x1, y1, x2, y2);
-	geometry_CheckCollision(line, geometry_GetRootNode(), &x2, &y2);
+	return addLine(x1, y1, x2, y2);
+}
+struct geometry_LineSegment * addLinePerpendicular(struct geometry_LineSegment * oldLine)
+{
+	float m, c;
+	if (slope(oldLine, &m))
+	{
+		displacement(oldLine, m, &c);
 
-	line->x2 = x2;
-	line->y2 = y2;
+		float newX1 = randRange(oldLine->x1, oldLine->x2);
+		float newY1 = m * newX1 + c;
 
-	geometry_addLine(line);
+		float newM = m * -1;
+		printf("Slope: %f (%f, %f x %f, %f\n", newM, oldLine->x1, oldLine->y1, oldLine->x2, oldLine->y2);
+		float newC = newY1 - newX1 * newM;
 
-	//printf("%f, %f, %f, %f\n", x1, y1, x2, y2);
+		float newX2 = randRange(-5.0, 5.0);
+		float newY2 = newM * newX2 + newC;
+
+		return addLine(newX1, newY1, newX2, newY2);
+	}
+	else
+	{
+		float newX1 = randRange(oldLine->x1, oldLine->x2);
+		float newY1 = randRange(oldLine->y1, oldLine->y2);
+
+		float newC = newY1;
+
+		float newX2 = randRange(-5.0, 5.0);
+		float newY2 = newC;
+		return addLine(newX1, newY1, newX2, newY2);
+	}
 }
 
+void addLinesPerpendicularRecurse(struct geometry_LineSegment * oldLine, int branches)
+{
+	float m, c;
+	if (branches > 0)
+	{
+		if (numLines > 100)
+		{
+			printf("Lines: %d\n", numLines);
+		}
+		if (numLines < MAX_LINES && fabs(oldLine->x1 - oldLine->x2) > 0.1 && slope(oldLine, &m))
+		{
+			displacement(oldLine, m, &c);
+			int i;
+			for (i = 0; i < branches; i++)
+			{
+				float newX1 = randRange(oldLine->x1, oldLine->x2);
+				float newY1 = m * newX1 + c;
+
+				float newM = m * -1;
+				float newC = newY1 - newX1 * newM;
+
+				float newX2 = randRange(-5.0, 5.0);
+				float newY2 = newM * newX2 + newC;
+
+				struct geometry_LineSegment * newLine = addLine(newX1, newY1, newX2, newY2);
+
+				numLines++;
+					addLinesPerpendicularRecurse(newLine, (branches / 2) - 1);
+
+			}
+		}
+	}
+}
 int SDL_main(int argc, char *argv[])
 {
 	geometry_init(5.0, 5.0, -5.0, -5.0);
 
-	int i;
-	for (i = 0; i < 500; i++)
-	{
-		addLine();
-	}
+	struct geometry_LineSegment * lastLine = addLineRandom();
+	addLinesPerpendicularRecurse(lastLine, BRANCHES);
 	SDL_Init(SDL_INIT_EVERYTHING);
 	SDL_Surface* screen;
 
