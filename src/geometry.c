@@ -6,9 +6,12 @@
 #include <string.h>
 #include <unistd.h>
 #include "geometry.h"
+#include <math.h>
 
 
 struct geometry_TreeNode *geometry_Root = 0;
+int geometry_NodeCount = 0;
+int geometry_LineCount = 0;
 
 void geometry_init(float x1, float y1, float x2, float y2)
 {
@@ -44,6 +47,7 @@ void geometry_addLineRecurse(struct geometry_TreeNode* node, struct geometry_Lin
 			node->children[1] = geometry_TreeNode_construct(midX, node->y1, node->x2, midY);
 			node->children[2] = geometry_TreeNode_construct(node->x1, midY, midX, node->y2);
 			node->children[3] = geometry_TreeNode_construct(midX, midY, node->x2, node->y2);
+
 			while (numLinesToTest < GEOMETRY_BUCKET_SIZE)
 			{
 				linesToTest[numLinesToTest] = node->lines[numLinesToTest];
@@ -268,6 +272,10 @@ struct geometry_TreeNode * geometry_TreeNode_construct(float x1, float y1, float
 	node = (struct geometry_TreeNode *) malloc(sizeof(struct geometry_TreeNode));
 	node->children = 0;
 	node->numLines = 0;
+
+	node->id = geometry_NodeCount++;
+	//printf("%d\n", node->id);
+
 	if (x1 == 0 && y1 == 0 && x2 == 0 && y2 == 0)
 	{
 		puts("Infinite subdivision");
@@ -340,10 +348,67 @@ struct geometry_LineSegment * geometry_LineSegment_construct(float x1, float y1,
 	line->y1 = y1;
 	line->x2 = x2;
 	line->y2 = y2;
+	line->id = geometry_LineCount++;
 	if (x1 == 0 && y1 == 0 && x2 == 0 && y2 == 0)
 	{
 		puts("Infinite subdivision");
 	}
 	return line;
 }
+void geometry_CheckCollision(struct geometry_LineSegment * line, struct geometry_TreeNode * node, float * resultX, float * resultY)
+{
+	int i;
+	if (geometry_LineFitsInNode(line, node) || geometry_BoxTest(line, node))
+	{
+		//printf("%d\n", node->id);
+		if (node->children != 0)
+		{
+			for (i = 0; i < TREE_ORDER; i++)
+			{
+				geometry_CheckCollision(line, node->children[i], resultX, resultY);
+			}
+		}
+		else
+		{
+			for (i = 0; i < node->numLines; i++)
+			{
+				float tmpX, tmpY;
+				if(geometry_LineIntersect(line, node->lines[i], &tmpX, &tmpY))
+				{
+					if (fabs(tmpX - line->x1) < fabs((* resultX) - line->x1))
+					{
+						* resultX = tmpX;
+						* resultY = tmpY;
+						printf("Collision! %d %f %f\n", line->id, tmpX, line->x1);
+					}
+				}
 
+			}
+		}
+	}
+}
+int geometry_BoxTest(struct geometry_LineSegment * line, struct geometry_TreeNode * node)
+{
+	int ret = 0;
+	struct geometry_LineSegment * test1 = geometry_LineSegment_construct(node->x1, node->y1, node->x2, node->y1);
+	struct geometry_LineSegment * test2 = geometry_LineSegment_construct(node->x1, node->y1, node->x1, node->y2);
+	struct geometry_LineSegment * test3 = geometry_LineSegment_construct(node->x1, node->y2, node->x2, node->y2);
+	struct geometry_LineSegment * test4 = geometry_LineSegment_construct(node->x2, node->y1, node->x2, node->y2);
+
+	float dummy;
+
+	if (	geometry_LineIntersect(line, test1, &dummy, &dummy) ||
+			geometry_LineIntersect(line, test2, &dummy, &dummy) ||
+			geometry_LineIntersect(line, test3, &dummy, &dummy) ||
+			geometry_LineIntersect(line, test4, &dummy, &dummy))
+	{
+		ret = 1;
+	}
+
+	free(test1);
+	free(test2);
+	free(test3);
+	free(test4);
+
+	return ret;
+}

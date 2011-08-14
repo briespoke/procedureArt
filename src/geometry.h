@@ -4,12 +4,14 @@
 
 struct geometry_LineSegment
 {
+	int id;
 	float x1, y1, x2, y2;
 };
 struct geometry_TreeNode
 {
 	float x1, y1, x2, y2;
 	int numLines;
+	int id;
 	struct geometry_LineSegment * lines[GEOMETRY_BUCKET_SIZE + 1];
 	struct geometry_TreeNode ** children;
 };
@@ -40,3 +42,6 @@ void geometry_WalkTree();
 void geometry_WalkTreeRecurse(struct geometry_TreeNode * node);
 
 struct geometry_TreeNode * geometry_GetRootNode();
+
+int geometry_BoxTest(struct geometry_LineSegment * line, struct geometry_TreeNode * node);
+void geometry_CheckCollision(struct geometry_LineSegment * line, struct geometry_TreeNode * node, float * resultX, float * resultY);

@@ -63,35 +63,6 @@ void display(Uint32 catchUp)
 	rotate2 += adjustedRotate;
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	/*
-	glPushMatrix();
-	glTranslatef(0.0, 0.0, -5.0);
-	glRotatef(rotate1, 5.0, 5.0, 0.0);
-	glRotatef(rotate1, 0.0, 5.0, 5.0);
-	glRotatef(rotate1, 5.0, 0.0, 5.0);
-	glTranslatef(0.0, 0.0, 5.0);
-
-	glBegin(GL_TRIANGLES);
-	glColor3f(1.0f, 0.0f, 1.0f);
-	glVertex3f(0.0, 2.0, -5.0);
-	glColor3f(1.0f, 1.0f, 0.0f);
-	glVertex3f(-2.0, -2.0, -5.0);
-	glColor3f(0.0f, 1.0f, 1.0f);
-	glVertex3f(2.0, -2.0, -5.0);
-	glEnd();
-	glPopMatrix();
-
-
-	//printf("%f\n", adjustedRotate);
-
-	glPushMatrix();
-	glTranslatef(0.0, 0.0, -5.0);
-	glRotatef(rotate2 * -1.0, 5.0, 5.0, 0.0);
-	glRotatef(rotate2 * -1.0, 0.0, 5.0, 5.0);
-	glRotatef(rotate2 * -1.0, 5.0, 0.0, 5.0);
-	glTranslatef(0.0, 0.0, 5.0);
-	glPopMatrix();
-*/
 	glPushMatrix();
 	glTranslatef(0.0, 0.0, -5.0);
 	glRotatef(adjustedRotate, 5.0, 5.0, 0.0);
@@ -114,19 +85,25 @@ void addLine()
 	float x2 = randRange(-5.0, 5.0);
 	float y2 = randRange(-5.0, 5.0);
 	struct geometry_LineSegment * line = geometry_LineSegment_construct(x1, y1, x2, y2);
+	geometry_CheckCollision(line, geometry_GetRootNode(), &x2, &y2);
+
+	line->x2 = x2;
+	line->y2 = y2;
+
 	geometry_addLine(line);
+
 	//printf("%f, %f, %f, %f\n", x1, y1, x2, y2);
 }
 
 int SDL_main(int argc, char *argv[])
 {
 	geometry_init(5.0, 5.0, -5.0, -5.0);
+
 	int i;
-	for (i = 0; i < 200; i++)
+	for (i = 0; i < 500; i++)
 	{
 		addLine();
 	}
-
 	SDL_Init(SDL_INIT_EVERYTHING);
 	SDL_Surface* screen;
 
@@ -162,7 +139,7 @@ int SDL_main(int argc, char *argv[])
 	}
 	SDL_Quit();
 
-	geometry_WalkTree();
+	//geometry_WalkTree();
 	geometry_destroy();
 	return 0;
 }
