@@ -169,7 +169,7 @@ void addLinesPerpendicularRecurse(struct geometry_LineSegment * oldLine, int bra
 				struct geometry_LineSegment * newLine = addLine(newX1, newY1, newX2, newY2);
 
 				numLines++;
-					addLinesPerpendicularRecurse(newLine, (branches / 2) - 1);
+					addLinesPerpendicularRecurse(newLine, (branches / 2) - 1);//MAMAMAMA
 
 			}
 		}
