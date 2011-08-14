@@ -14,8 +14,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "geometry.h"
+#include <limits.h>
 
-#define ROTATE_FACTOR 0.1
+#define ROTATE_FACTOR 0.01
 
 float rotate1 = 0.0;
 float rotate2 = 0.0;
@@ -29,6 +30,31 @@ void init()
 	glMatrixMode(GL_MODELVIEW);
 }
 
+void procedureArt_ShowLine(struct geometry_TreeNode * node)
+{
+	int i;
+	if (node->children == 0)
+	{
+		for (i = 0; i < node->numLines; i++)
+		{
+			glBegin(GL_LINES);
+			glColor3f(0.0f, 0.0f, 1.0f);
+			glVertex3f(node->lines[i]->x1, node->lines[i]->y1, -5.0);
+			glColor3f(0.0f, 1.0f, 0.0f);
+			glVertex3f(node->lines[i]->x2, node->lines[i]->y2, -5.0);
+			glEnd();
+
+		}
+	}
+	else
+	{
+		for (i = 0; i < TREE_ORDER; i++)
+		{
+			procedureArt_ShowLine(node->children[i]);
+		}
+	}
+
+}
 void display(Uint32 catchUp)
 {
 	float adjustedRotate;
@@ -37,6 +63,7 @@ void display(Uint32 catchUp)
 	rotate2 += adjustedRotate;
 	glClear(GL_COLOR_BUFFER_BIT);
 
+	/*
 	glPushMatrix();
 	glTranslatef(0.0, 0.0, -5.0);
 	glRotatef(rotate1, 5.0, 5.0, 0.0);
@@ -63,18 +90,43 @@ void display(Uint32 catchUp)
 	glRotatef(rotate2 * -1.0, 0.0, 5.0, 5.0);
 	glRotatef(rotate2 * -1.0, 5.0, 0.0, 5.0);
 	glTranslatef(0.0, 0.0, 5.0);
-
-	glBegin(GL_LINES);
-	glColor3f(0.0f, 0.0f, 1.0f);
-	glVertex3f(0.0, -2.0, -5.0);
-	glColor3f(0.0f, 1.0f, 0.0f);
-	glVertex3f(-2.0, 2.0, -5.0);
-	glEnd();
 	glPopMatrix();
+*/
+	glPushMatrix();
+	glTranslatef(0.0, 0.0, -5.0);
+	glRotatef(adjustedRotate, 5.0, 5.0, 0.0);
+	glRotatef(adjustedRotate, 0.0, 5.0, 5.0);
+	glRotatef(adjustedRotate, 5.0, 0.0, 5.0);
+	glTranslatef(0.0, 0.0, 5.0);
+	procedureArt_ShowLine(geometry_GetRootNode());
 }
 
-int main(int argc, char *argv[])
+float randRange(float lower, float upper)
 {
+	float value = rand() * 1.0;
+	float valueFloat = value / RAND_MAX;
+	return (upper - lower) * valueFloat + lower;
+}
+void addLine()
+{
+	float x1 = randRange(-5.0, 5.0);
+	float y1 = randRange(-5.0, 5.0);
+	float x2 = randRange(-5.0, 5.0);
+	float y2 = randRange(-5.0, 5.0);
+	struct geometry_LineSegment * line = geometry_LineSegment_construct(x1, y1, x2, y2);
+	geometry_addLine(line);
+	//printf("%f, %f, %f, %f\n", x1, y1, x2, y2);
+}
+
+int SDL_main(int argc, char *argv[])
+{
+	geometry_init(5.0, 5.0, -5.0, -5.0);
+	int i;
+	for (i = 0; i < 200; i++)
+	{
+		addLine();
+	}
+
 	SDL_Init(SDL_INIT_EVERYTHING);
 	SDL_Surface* screen;
 
@@ -109,6 +161,8 @@ int main(int argc, char *argv[])
 		}
 	}
 	SDL_Quit();
-	return 0;
 
+	geometry_WalkTree();
+	geometry_destroy();
+	return 0;
 }

@@ -1,118 +1,349 @@
-#include <SDL.h>
+//#include <SDL.h>
 #include <gl.h>
 #include <glu.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <string.h>
+#include <unistd.h>
 #include "geometry.h"
 
 
-struct geometry_TreeNode* geometry_Root = 0;
+struct geometry_TreeNode *geometry_Root = 0;
 
-void geometry_addShape(int type, float * vertices)
+void geometry_init(float x1, float y1, float x2, float y2)
 {
-	struct geometry_Shape *newShape;
-	int numVertices;
-
-	char errorText[BUFFER_SIZE];
-	switch (type)
-	{
-		case GL_LINES :
-			numVertices = 2;
-			break;
-		case GL_TRIANGLES :
-			numVertices = 3;
-			break;
-		default :
-			snprintf(errorText, BUFFER_SIZE, "Error: Unknown geometry definition %d", type);
-
-			fputs(stderr, errorText);
-	}
-	newShape = (struct geometry_Shape *) malloc(sizeof(struct geometry_Shape));
-	struct geometry_Vertex ** verticesArray;
-	verticesArray = (struct geometry_Vertex **) malloc (GEOMETRY_BUCKET_SIZE * sizeof(struct geometry_Vertex *));
-
-	int i;
-	for (i = 0; i < numVertices; i++)
-	{
-		verticesArray[i] = (struct geometry_Vertex *) malloc (sizeof (struct geometry_Vertex));
-		verticesArray[i]->shape = *newShape;
-		verticesArray[i]->x = vertices[i * 2];
-		verticesArray[i]->y = vertices[i * 2 + 1];
-
-		geometry_addVertex(geometry_Root, verticesArray[i], newShape);
-	}
-
-	newShape->vertices = * verticesArray;
-	newShape->type = type;
+	geometry_Root = geometry_TreeNode_construct(x1, y1, x2, y2);
 }
 
-void geometry_addVertex(struct geometry_TreeNode* node, struct geometry_Vertex * vertex, struct geometry_Shape* shape)
+void geometry_addLine(struct geometry_LineSegment * newLine)
 {
-	if (node->numVertices < GEOMETRY_BUCKET_SIZE)
+	geometry_addLineRecurse(geometry_Root, newLine);
+}
+
+void geometry_addLineRecurse(struct geometry_TreeNode* node, struct geometry_LineSegment * newLine)
+{
+	if (node->numLines < GEOMETRY_BUCKET_SIZE)
 	{
-		node->vertices[node->numVertices] = *vertex;
-		node->numVertices++;
+		node->lines[node->numLines] = newLine;
+		node->numLines++;
 	}
 	else
 	{
-		// Split
+		int numLinesToTest = 0;
+		struct geometry_LineSegment * linesToTest[GEOMETRY_BUCKET_SIZE + 1];
 
-		float midX = node->x1 + node->x2 / 2;
-		float midY = node->y1 + node->y2 / 2;
+		int i;
+		float midX = (node->x1 + node->x2) / 2;
+		float midY = (node->y1 + node->y2) / 2;
 
-		node->children[0] = geometry_TreeNode_Construct(node->x1, node->y1, midX, midY);
-		node->children[1] = geometry_TreeNode_Construct(midX, node->y1, node->x2, midY);
-		node->children[2] = geometry_TreeNode_Construct(node->x1, midY, midX, node->y2);
-		node->children[3] = geometry_TreeNode_Construct(midX, midY, node->x2, node->y2);
-
-		int target;
-		if (vertex->x < midX)
+		if (node->children == 0)
 		{
-			if (vertex->y < midY)
+			node->children = (struct geometry_TreeNode**) malloc (TREE_ORDER * sizeof (struct geometry_TreeNode*));
+
+			node->children[0] = geometry_TreeNode_construct(node->x1, node->y1, midX, midY);
+			node->children[1] = geometry_TreeNode_construct(midX, node->y1, node->x2, midY);
+			node->children[2] = geometry_TreeNode_construct(node->x1, midY, midX, node->y2);
+			node->children[3] = geometry_TreeNode_construct(midX, midY, node->x2, node->y2);
+			while (numLinesToTest < GEOMETRY_BUCKET_SIZE)
 			{
-				target = 0;
+				linesToTest[numLinesToTest] = node->lines[numLinesToTest];
+				numLinesToTest++;
+			}
+		}
+		linesToTest[numLinesToTest] = newLine;
+		numLinesToTest++;
+
+		//Here we're going to chop the line segments up until they will all fit in exactly one child.
+		node->lines[GEOMETRY_BUCKET_SIZE] = newLine;
+		int numChoppedLines = 0;
+
+		struct geometry_LineSegment * choppedLines[BUFFER_SIZE];
+
+		struct geometry_LineSegment * test1 = geometry_LineSegment_construct(midX, node->y1, midX, node->y2);
+		struct geometry_LineSegment * test2 = geometry_LineSegment_construct(node->x1, midY, node->x2, midY);
+
+		for (i = 0; i < numLinesToTest && numChoppedLines < BUFFER_SIZE; i ++)
+		{
+			struct geometry_LineSegment * line = linesToTest[i];
+			float resultX1, resultY1, resultX2, resultY2;
+
+			int intersect1, intersect2;
+			intersect1 = geometry_LineIntersect(line, test1, &resultX1, &resultY1);
+			intersect2 = geometry_LineIntersect(line, test2, &resultX2, &resultY2);
+
+			if (intersect1 && intersect2)
+			{
+				struct geometry_LineSegment * newLine1 = geometry_LineSegment_construct(line->x1, line->y1, resultX1, resultY1);
+				struct geometry_LineSegment * newLine2 = geometry_LineSegment_construct(resultX1, resultY1, resultX2, resultY2);
+				struct geometry_LineSegment * newLine3 = geometry_LineSegment_construct(resultX2, resultY2, line->x2, line->y2);
+
+				choppedLines[numChoppedLines] = newLine1;
+				choppedLines[numChoppedLines + 1] = newLine2;
+				choppedLines[numChoppedLines + 2] = newLine3;
+				numChoppedLines += 3;
+
+				free(line);
+			}
+			else if (intersect1)
+			{
+
+				struct geometry_LineSegment * newLine1 = geometry_LineSegment_construct(line->x1, line->y1, resultX1, resultY1);
+				struct geometry_LineSegment * newLine2 = geometry_LineSegment_construct(resultX1, resultY1, line->x2, line->y2);
+
+				choppedLines[numChoppedLines] = newLine1;
+				choppedLines[numChoppedLines + 1] = newLine2;
+				numChoppedLines += 2;
+
+				free(line);
+			}
+			else if (intersect2)
+			{
+
+				struct geometry_LineSegment * newLine1 = geometry_LineSegment_construct(line->x1, line->y1, resultX2, resultY2);
+				struct geometry_LineSegment * newLine2 = geometry_LineSegment_construct(resultX2, resultY2, line->x2, line->y2);
+
+				choppedLines[numChoppedLines] = newLine1;
+				choppedLines[numChoppedLines + 1] = newLine2;
+				numChoppedLines += 2;
+
+				free(line);
 			}
 			else
 			{
-				target = 1;
+				choppedLines[numChoppedLines] = line;
+				numChoppedLines++;
+			}
+
+		}
+
+		free(test1);
+		free(test2);
+
+		for (i = 0; i < numChoppedLines; i++)
+		{
+			struct geometry_LineSegment * line = choppedLines[i];
+
+			int j;
+			int found = 0;
+
+			for (j = 0; j < TREE_ORDER && ! found; j++)
+			{
+				struct geometry_TreeNode * childNode = node->children[j];
+
+				if (geometry_LineFitsInNode(line, childNode))
+				{
+					found = 1;
+					geometry_addLineRecurse(childNode, line);
+				}
+			}
+		}
+	}
+}
+
+int geometry_LineFitsInNode(struct geometry_LineSegment * line, struct geometry_TreeNode *childNode)
+{
+	if (line->x1 <= childNode->x1 &&
+		line->x2 <= childNode->x1 &&
+		line->y1 <= childNode->y1 &&
+		line->y2 <= childNode->y1 &&
+		line->x1 >= childNode->x2 &&
+		line->x2 >= childNode->x2 &&
+		line->y1 >= childNode->y2 &&
+		line->y2 >= childNode->y2
+		)
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+int geometry_LineIntersect(struct geometry_LineSegment * line1, struct geometry_LineSegment * line2, float * resultX, float *resultY)
+{
+	//y = mx + c
+	float m1, m2, c1, c2;
+	int nonVertical1 = slope(line1, &m1);
+	int nonVertical2 = slope(line2, &m2);
+
+	if (nonVertical1 && nonVertical2)
+	{
+		if (m1 == m2)
+		{
+			// Lines are parallel, they never intersect
+			return 0;
+		}
+		else
+		{
+			displacement(line1, m1, &c1);
+			displacement(line2, m2, &c2);
+
+			float xIntersect = (c2 - c1) / (m1 - m2);
+
+			if (inRange(line1, xIntersect) && inRange(line2, xIntersect))
+			{
+				*resultX = xIntersect;
+				*resultY = xIntersect * m1 + c1;
+				return 1;
+			}
+			else
+			{
+				return 0;
+			}
+		}
+	}
+	else
+	{
+		if (!nonVertical1 && !nonVertical2)
+		{
+			//Both lines are vertical, they never intersect
+			return 0;
+		}
+		else if (! nonVertical1)
+		{
+			//line 1 is vertical
+			if (inRange(line2, line1->x1))
+			{
+				displacement(line2, m2, &c2);
+				* resultX = line1->x1;
+				* resultY = line1->x1 * m2 + c2;
+				return 1;
+			}
+			else
+			{
+				return 0;
 			}
 		}
 		else
 		{
-			if (vertex->y < midY)
+			//line 2 is vertical
+			if (inRange(line1, line2->x1))
 			{
-				target = 2;
+				displacement(line1, m1, &c1);
+				* resultX = line2->x1;
+				* resultY = line2->x1 * m1 + c1;
+				return 1;
 			}
 			else
 			{
-				target = 3;
+				return 0;
 			}
+
 		}
-		geometry_addVertex(node->children[target], vertex, shape);
 	}
 }
 
-void geometry_init(float x1, float y1, float x2, float y2)
+int inRange(struct geometry_LineSegment * line, float test)
 {
-	geometry_Root = geometry_TreeNode_Construct(x1, y1, x2, y2);
+	return  (test > line->x1 && test < line->x2) ||
+			(test > line->x2 && test < line->x1);
 }
 
-struct geometry_TreeNode * geometry_TreeNode_Construct(float x1, float y1, float x2, float y2)
+int slope(struct geometry_LineSegment * line, float * result)
+{
+	float rise = (line->y1 - line->y2);
+	float run = (line->x1 - line->x2);
+	if (run == 0)
+	{
+		return 0;
+	}
+	else
+	{
+		*result = rise / run;
+		return 1;
+	}
+}
+
+int displacement(struct geometry_LineSegment * line, float slope, float * result)
+{
+	//c = y - xm
+	* result = line->y1 - line->x1 * slope;
+	return 1;
+}
+
+struct geometry_TreeNode * geometry_TreeNode_construct(float x1, float y1, float x2, float y2)
 {
 	struct geometry_TreeNode * node;
 	node = (struct geometry_TreeNode *) malloc(sizeof(struct geometry_TreeNode));
-	node->children = (struct geometry_TreeNode **) malloc (TREE_ORDER * sizeof(struct geometry_TreeNode *));
-	memset(node->children, 0, TREE_ORDER);
+	node->children = 0;
+	node->numLines = 0;
+	if (x1 == 0 && y1 == 0 && x2 == 0 && y2 == 0)
+	{
+		puts("Infinite subdivision");
+	}
 	node->x1 = x1;
 	node->y1 = y1;
 	node->x2 = x2;
 	node->y2 = y2;
-
+	//printf("Node construct: %f, %f, %f, %f\n", x1, y1, x2, y2);
 	return node;
 }
 
-void geometry_destroy(struct geometry_Shape * node)
+void geometry_destroy()
 {
+	geometry_TreeNode_destroyRecurse(geometry_Root);
+}
+
+void geometry_TreeNode_destroyRecurse(struct geometry_TreeNode * node)
+{
+	int i;
+	if (node->children != 0)
+	{
+		for (i = 0; i < TREE_ORDER; i++)
+		{
+			geometry_TreeNode_destroyRecurse(node->children[i]);
+		}
+	}
+	else
+	{
+		for (i = 0; i < node->numLines; i++)
+		{
+			free(node->lines[i]);
+		}
+	}
+	free(node);
+}
+struct geometry_TreeNode * geometry_GetRootNode()
+{
+	return geometry_Root;
+}
+void geometry_WalkTree()
+{
+	geometry_WalkTreeRecurse(geometry_Root);
+}
+void geometry_WalkTreeRecurse(struct geometry_TreeNode * node)
+{
+	int i;
+	if (node->children == 0)
+	{
+		for (i = 0; i < node->numLines; i++)
+		{
+			printf("%f, %f : %f, %f\n", node->lines[i]->x1, node->lines[i]->y1, node->lines[i]->x2, node->lines[i]->y2);
+		}
+	}
+	else
+	{
+		for (i = 0; i < TREE_ORDER; i++)
+		{
+			geometry_WalkTreeRecurse(node->children[i]);
+		}
+	}
 
 }
+
+struct geometry_LineSegment * geometry_LineSegment_construct(float x1, float y1, float x2, float y2)
+{
+	struct geometry_LineSegment * line;
+	line = (struct geometry_LineSegment *) malloc(sizeof (struct geometry_LineSegment));
+	line->x1 = x1;
+	line->y1 = y1;
+	line->x2 = x2;
+	line->y2 = y2;
+	if (x1 == 0 && y1 == 0 && x2 == 0 && y2 == 0)
+	{
+		puts("Infinite subdivision");
+	}
+	return line;
+}
+
