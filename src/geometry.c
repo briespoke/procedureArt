@@ -379,11 +379,23 @@ void geometry_CheckCollision(struct geometry_LineSegment * line, struct geometry
 					{
 						* resultX = tmpX;
 						* resultY = tmpY;
-						printf("Collision! %d %f %f\n", line->id, tmpX, tmpY);
+						if (*resultY == -1.25)
+						{
+							puts("Moo!");
+						}
+						//printf("Collision! %d %f %f\n", line->id, tmpX, tmpY);
+					}
+					if (tmpY == -1.25)
+					{
+						puts("Moo!");
 					}
 				}
 
 			}
+		}
+		if (*resultY == -1.25)
+		{
+			puts("Moo!");
 		}
 	}
 }

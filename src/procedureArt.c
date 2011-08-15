@@ -18,7 +18,7 @@
 #include <math.h>
 
 #define ROTATE_FACTOR 0.01
-#define BRANCHES 10
+#define BRANCHES 20
 #define MAX_LINES 500
 int numLines = 0;
 float rotate1 = 0.0;
@@ -93,13 +93,12 @@ struct geometry_LineSegment * addLine(float x1, float y1, float x2, float y2)
 {
 	struct geometry_LineSegment * line = geometry_LineSegment_construct(x1, y1, x2, y2);
 	geometry_CheckCollision(line, geometry_GetRootNode(), &x2, &y2);
-
-	if (x2 != line->x2)
+	if (line->y1 == -1.25)
 	{
-		line->x2 = x2;
-		line->y2 = y2;
+		puts("Weirdness!");
 	}
-	geometry_addLine(line);
+	struct geometry_LineSegment * disposableLine =  geometry_LineSegment_construct(x1, y1, x2, y2);
+	geometry_addLine(disposableLine);
 	return line;
 }
 struct geometry_LineSegment * addLineRandom()
@@ -149,7 +148,7 @@ void addLinesPerpendicularRecurse(struct geometry_LineSegment * oldLine, int bra
 	{
 		if (numLines > 100)
 		{
-			printf("Lines: %d\n", numLines);
+			//printf("Lines: %d\n", numLines);
 		}
 		if (numLines < MAX_LINES && fabs(oldLine->x1 - oldLine->x2) > 0.1 && slope(oldLine, &m))
 		{
@@ -163,6 +162,11 @@ void addLinesPerpendicularRecurse(struct geometry_LineSegment * oldLine, int bra
 				float newM = m * -1;
 				float newC = newY1 - newX1 * newM;
 
+				printf("Slope: %f (%f, %f x %f, %f\n", newM, oldLine->x1, oldLine->y1, oldLine->x2, oldLine->y2);
+				if (newM == 0)
+				{
+					puts("Moo");
+				}
 				float newX2 = randRange(-5.0, 5.0);
 				float newY2 = newM * newX2 + newC;
 
@@ -170,6 +174,7 @@ void addLinesPerpendicularRecurse(struct geometry_LineSegment * oldLine, int bra
 
 				numLines++;
 					addLinesPerpendicularRecurse(newLine, (branches / 2) - 1);//MAMAMAMA
+				free(newLine);
 
 			}
 		}
