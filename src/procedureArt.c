@@ -21,8 +21,12 @@
 #include "geometry.h"
 
 #define ROTATE_FACTOR 0.01
-#define BRANCHES 10
+#define BRANCHES 5
+#define DEPTH 5
 #define MAX_LINES 5000
+
+#define WINDOW_WIDTH 1024
+#define WINDOW_HEIGHT 768
 
 int numLines = 0;
 float rotate1 = 0.0;
@@ -33,11 +37,11 @@ void init()
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(60, 1024/768, 1.0, 500.0);
+	gluPerspective(60, WINDOW_WIDTH/WINDOW_HEIGHT, 1.0, 500.0);
 	glMatrixMode(GL_MODELVIEW);
 }
 
-void procedureArt_ShowLine(struct geometry_TreeNode * node)
+void procedureArt_ShowLine(struct geometry_TreeNode * node, float adjustedRotate)
 {
 	int i;
 	if (node->children == 0)
@@ -45,19 +49,29 @@ void procedureArt_ShowLine(struct geometry_TreeNode * node)
 		for (i = 0; i < node->numLines; i++)
 		{
 			struct geometry_LineSegment * line = node->lines[i];
-			//printf("%d\n", SDL_GetTicks());
 			if (line->id < (SDL_GetTicks() / 5.0))
 			{
-				line->dz = 5.0 - (SDL_GetTicks() / 5.0 - line->id) / 5;
+
+				glPushMatrix();
+				glTranslatef(0.0, 0.0, -7.0);
+				glRotatef(adjustedRotate, 5.0, 5.0, 0.0);
+				glRotatef(adjustedRotate, 0.0, 5.0, 5.0);
+				glRotatef(adjustedRotate, 5.0, 0.0, 5.0);
+				glTranslatef(0.0, 0.0, 7.0);
+
+				line->dz = 7.0 - (SDL_GetTicks() / 5.0 - line->id) / 10;
 				if (line->dz > 0.0)
 				{
-					glPushMatrix();
+					glTranslatef(0.0, 0.0, 7.0 - line->dz);
+					glRotatef(line->dz * 10, line->rx, line->ry, line->rz);
+					glTranslatef(0.0, 0.0, line->dz - 7.0);
 					glTranslatef(0.0, 0.0, line->dz);
+
+
 					glBegin(GL_LINES);
 					glVertex3f(line->x1, line->y1, -7.0);
 					glVertex3f(line->x2, line->y2, -7.0);
 					glEnd();
-					glPopMatrix();
 				}
 				else
 				{
@@ -66,6 +80,7 @@ void procedureArt_ShowLine(struct geometry_TreeNode * node)
 					glVertex3f(line->x2, line->y2, -7.0);
 					glEnd();
 				}
+				glPopMatrix();
 			}
 
 		}
@@ -74,7 +89,7 @@ void procedureArt_ShowLine(struct geometry_TreeNode * node)
 	{
 		for (i = 0; i < TREE_ORDER; i++)
 		{
-			procedureArt_ShowLine(node->children[i]);
+			procedureArt_ShowLine(node->children[i], adjustedRotate);
 		}
 	}
 
@@ -86,16 +101,7 @@ void display(Uint32 catchUp)
 	rotate1 += adjustedRotate;
 	rotate2 += adjustedRotate;
 	glClear(GL_COLOR_BUFFER_BIT);
-
-	/*
-	glPushMatrix();
-	glTranslatef(0.0, 0.0, -5.0);
-	glRotatef(adjustedRotate, 5.0, 5.0, 0.0);
-	glRotatef(adjustedRotate, 0.0, 5.0, 5.0);
-	glRotatef(adjustedRotate, 5.0, 0.0, 5.0);
-	glTranslatef(0.0, 0.0, 5.0);
-	*/
-	procedureArt_ShowLine(geometry_GetRootNode());
+	procedureArt_ShowLine(geometry_GetRootNode(), rotate1);
 }
 
 struct geometry_LineSegment * addLine(float x1, float y1, float x2, float y2)
@@ -132,10 +138,6 @@ void addLinesPerpendicularRecurse(struct geometry_LineSegment * oldLine, int bra
 	float m, c;
 	if (branches > 0 && maxDepth > 0)
 	{
-		if (numLines > 100)
-		{
-			//printf("Lines: %d\n", numLines);
-		}
 		if (numLines < MAX_LINES && fabs(oldLine->x1 - oldLine->x2) > 0.1 && slope(oldLine, &m))
 		{
 			displacement(oldLine, &c);
@@ -150,7 +152,7 @@ void addLinesPerpendicularRecurse(struct geometry_LineSegment * oldLine, int bra
 				float newM = -1.0 / m;
 				float newC = newY1 - newX1 * newM;
 
-				float newX2Min = newX1 - xRange * .9;
+				float newX2Min = newX1 - xRange * 1.5;
 				if (newX2Min < -5.0)
 				{
 					newX2Min = -5.0;
@@ -168,14 +170,15 @@ void addLinesPerpendicularRecurse(struct geometry_LineSegment * oldLine, int bra
 				numLines++;
 				addLinesPerpendicularRecurse(newLine, branches -1, maxDepth - 1);
 				free(newLine);
-
 			}
 		}
 	}
 }
 int main(int argc, char *argv[])
 {
-	srand(time(NULL));
+	int random_seed = time(NULL);
+	srand(random_seed);
+	printf("RANDOM SEED: %d\n", random_seed);
 	geometry_init(5.0, 5.0, -5.0, -5.0);
 
 	int i = 0;
@@ -183,13 +186,13 @@ int main(int argc, char *argv[])
 	for(i = 0; i < 10; i++)
 	{
 		struct geometry_LineSegment * lastLine = addLineRandom();
-		addLinesPerpendicularRecurse(lastLine, BRANCHES, 3);
+		addLinesPerpendicularRecurse(lastLine, BRANCHES, DEPTH);
 		free(lastLine);
 	}
 	SDL_Init(SDL_INIT_EVERYTHING);
 	SDL_Surface* screen;
 
-	screen = SDL_SetVideoMode(1024, 768, 32, SDL_SWSURFACE | SDL_OPENGL);
+	screen = SDL_SetVideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, 32, SDL_FULLSCREEN | SDL_HWSURFACE | SDL_OPENGL);
 	int running = 1;
 	Uint32 start;
 	Uint32 remainder;
@@ -210,7 +213,6 @@ int main(int argc, char *argv[])
 				break;
 			}
 		}
-		//printf("%d\n", remainder);
 		display(remainder);
 		SDL_GL_SwapBuffers();
 		remainder = SDL_GetTicks() - start;
