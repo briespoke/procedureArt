@@ -44,10 +44,29 @@ void procedureArt_ShowLine(struct geometry_TreeNode * node)
 	{
 		for (i = 0; i < node->numLines; i++)
 		{
-			glBegin(GL_LINES);
-			glVertex3f(node->lines[i]->x1, node->lines[i]->y1, -7.0);
-			glVertex3f(node->lines[i]->x2, node->lines[i]->y2, -7.0);
-			glEnd();
+			struct geometry_LineSegment * line = node->lines[i];
+			//printf("%d\n", SDL_GetTicks());
+			if (line->id < (SDL_GetTicks() / 5.0))
+			{
+				line->dz = 5.0 - (SDL_GetTicks() / 5.0 - line->id) / 5;
+				if (line->dz > 0.0)
+				{
+					glPushMatrix();
+					glTranslatef(0.0, 0.0, line->dz);
+					glBegin(GL_LINES);
+					glVertex3f(line->x1, line->y1, -7.0);
+					glVertex3f(line->x2, line->y2, -7.0);
+					glEnd();
+					glPopMatrix();
+				}
+				else
+				{
+					glBegin(GL_LINES);
+					glVertex3f(line->x1, line->y1, -7.0);
+					glVertex3f(line->x2, line->y2, -7.0);
+					glEnd();
+				}
+			}
 
 		}
 	}
@@ -68,12 +87,14 @@ void display(Uint32 catchUp)
 	rotate2 += adjustedRotate;
 	glClear(GL_COLOR_BUFFER_BIT);
 
+	/*
 	glPushMatrix();
 	glTranslatef(0.0, 0.0, -5.0);
 	glRotatef(adjustedRotate, 5.0, 5.0, 0.0);
 	glRotatef(adjustedRotate, 0.0, 5.0, 5.0);
 	glRotatef(adjustedRotate, 5.0, 0.0, 5.0);
 	glTranslatef(0.0, 0.0, 5.0);
+	*/
 	procedureArt_ShowLine(geometry_GetRootNode());
 }
 
@@ -129,12 +150,12 @@ void addLinesPerpendicularRecurse(struct geometry_LineSegment * oldLine, int bra
 				float newM = -1.0 / m;
 				float newC = newY1 - newX1 * newM;
 
-				float newX2Min = newX1 - xRange * 2 / 3;
+				float newX2Min = newX1 - xRange * .9;
 				if (newX2Min < -5.0)
 				{
 					newX2Min = -5.0;
 				}
-				float newX2Max = newX1 + xRange * 2 /3;
+				float newX2Max = newX1 + xRange * .9;
 				if (newX2Max > 5.0)
 				{
 					newX2Max = 5.0;

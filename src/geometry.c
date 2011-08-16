@@ -64,8 +64,8 @@ void geometry_addLineRecurse(struct geometry_TreeNode* node, struct geometry_Lin
 
 		struct geometry_LineSegment * choppedLines[BUFFER_SIZE];
 
-		struct geometry_LineSegment * test1 = geometry_LineSegment_construct(midX, node->y1, midX, node->y2);
-		struct geometry_LineSegment * test2 = geometry_LineSegment_construct(node->x1, midY, node->x2, midY);
+		struct geometry_LineSegment * test1 = geometry_LineSegment_constructDummy(midX, node->y1, midX, node->y2);
+		struct geometry_LineSegment * test2 = geometry_LineSegment_constructDummy(node->x1, midY, node->x2, midY);
 
 		for (i = 0; i < numLinesToTest && numChoppedLines < BUFFER_SIZE; i ++)
 		{
@@ -78,9 +78,9 @@ void geometry_addLineRecurse(struct geometry_TreeNode* node, struct geometry_Lin
 
 			if (intersect1 && intersect2)
 			{
-				struct geometry_LineSegment * newLine1 = geometry_LineSegment_construct(line->x1, line->y1, resultX1, resultY1);
-				struct geometry_LineSegment * newLine2 = geometry_LineSegment_construct(resultX1, resultY1, resultX2, resultY2);
-				struct geometry_LineSegment * newLine3 = geometry_LineSegment_construct(resultX2, resultY2, line->x2, line->y2);
+				struct geometry_LineSegment * newLine1 = geometry_LineSegment_constructSplit(line->x1, line->y1, resultX1, resultY1, line);
+				struct geometry_LineSegment * newLine2 = geometry_LineSegment_constructSplit(resultX1, resultY1, resultX2, resultY2, line);
+				struct geometry_LineSegment * newLine3 = geometry_LineSegment_constructSplit(resultX2, resultY2, line->x2, line->y2, line);
 
 				choppedLines[numChoppedLines] = newLine1;
 				choppedLines[numChoppedLines + 1] = newLine2;
@@ -92,8 +92,8 @@ void geometry_addLineRecurse(struct geometry_TreeNode* node, struct geometry_Lin
 			else if (intersect1)
 			{
 
-				struct geometry_LineSegment * newLine1 = geometry_LineSegment_construct(line->x1, line->y1, resultX1, resultY1);
-				struct geometry_LineSegment * newLine2 = geometry_LineSegment_construct(resultX1, resultY1, line->x2, line->y2);
+				struct geometry_LineSegment * newLine1 = geometry_LineSegment_constructSplit(line->x1, line->y1, resultX1, resultY1, line);
+				struct geometry_LineSegment * newLine2 = geometry_LineSegment_constructSplit(resultX1, resultY1, line->x2, line->y2, line);
 
 				choppedLines[numChoppedLines] = newLine1;
 				choppedLines[numChoppedLines + 1] = newLine2;
@@ -104,8 +104,8 @@ void geometry_addLineRecurse(struct geometry_TreeNode* node, struct geometry_Lin
 			else if (intersect2)
 			{
 
-				struct geometry_LineSegment * newLine1 = geometry_LineSegment_construct(line->x1, line->y1, resultX2, resultY2);
-				struct geometry_LineSegment * newLine2 = geometry_LineSegment_construct(resultX2, resultY2, line->x2, line->y2);
+				struct geometry_LineSegment * newLine1 = geometry_LineSegment_constructSplit(line->x1, line->y1, resultX2, resultY2, line);
+				struct geometry_LineSegment * newLine2 = geometry_LineSegment_constructSplit(resultX2, resultY2, line->x2, line->y2, line);
 
 				choppedLines[numChoppedLines] = newLine1;
 				choppedLines[numChoppedLines + 1] = newLine2;
@@ -379,7 +379,7 @@ struct geometry_LineSegment * geometry_LineSegment_construct(float x1, float y1,
 	}
 	return line;
 }
-struct geometry_LineSegment * geometry_LineSegment_constructSplit(struct geometry_LineSegment * init, float x1, float y1, float x2, float y2)
+struct geometry_LineSegment * geometry_LineSegment_constructDummy(float x1, float y1, float x2, float y2)
 {
 	struct geometry_LineSegment * line;
 	line = (struct geometry_LineSegment *) malloc(sizeof (struct geometry_LineSegment));
@@ -387,7 +387,22 @@ struct geometry_LineSegment * geometry_LineSegment_constructSplit(struct geometr
 	line->y1 = y1;
 	line->x2 = x2;
 	line->y2 = y2;
-	line->id = geometry_LineCount++;
+
+	if (x1 == 0 && y1 == 0 && x2 == 0 && y2 == 0)
+	{
+		puts("Infinite subdivision");
+	}
+	return line;
+}
+struct geometry_LineSegment * geometry_LineSegment_constructSplit(float x1, float y1, float x2, float y2, struct geometry_LineSegment * init)
+{
+	struct geometry_LineSegment * line;
+	line = (struct geometry_LineSegment *) malloc(sizeof (struct geometry_LineSegment));
+	line->x1 = x1;
+	line->y1 = y1;
+	line->x2 = x2;
+	line->y2 = y2;
+	line->id = init->id;
 
 	line->angle = init->angle;
 	line->rx = init->rx;
@@ -451,10 +466,10 @@ void geometry_CheckCollision(struct geometry_LineSegment * line, struct geometry
 int geometry_BoxTest(struct geometry_LineSegment * line, struct geometry_TreeNode * node)
 {
 	int ret = 0;
-	struct geometry_LineSegment * test1 = geometry_LineSegment_construct(node->x1, node->y1, node->x2, node->y1);
-	struct geometry_LineSegment * test2 = geometry_LineSegment_construct(node->x1, node->y1, node->x1, node->y2);
-	struct geometry_LineSegment * test3 = geometry_LineSegment_construct(node->x1, node->y2, node->x2, node->y2);
-	struct geometry_LineSegment * test4 = geometry_LineSegment_construct(node->x2, node->y1, node->x2, node->y2);
+	struct geometry_LineSegment * test1 = geometry_LineSegment_constructDummy(node->x1, node->y1, node->x2, node->y1);
+	struct geometry_LineSegment * test2 = geometry_LineSegment_constructDummy(node->x1, node->y1, node->x1, node->y2);
+	struct geometry_LineSegment * test3 = geometry_LineSegment_constructDummy(node->x1, node->y2, node->x2, node->y2);
+	struct geometry_LineSegment * test4 = geometry_LineSegment_constructDummy(node->x2, node->y1, node->x2, node->y2);
 
 	float dummy;
 

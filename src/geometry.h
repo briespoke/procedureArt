@@ -32,6 +32,9 @@ void geometry_destroy();
 void geometry_TreeNode_destroyRecurse(struct geometry_TreeNode * node);
 
 struct geometry_LineSegment * geometry_LineSegment_construct(float x1, float y1, float x2, float y2);
+struct geometry_LineSegment * geometry_LineSegment_constructSplit(float x1, float y1, float x2, float y2, struct geometry_LineSegment * init);
+struct geometry_LineSegment * geometry_LineSegment_constructDummy(float x1, float y1, float x2, float y2);
+
 
 int geometry_LineFitsInNode(struct geometry_LineSegment * line , struct geometry_TreeNode *childNode);
 
