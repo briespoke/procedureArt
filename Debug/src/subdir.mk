@@ -5,15 +5,18 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../src/geometry.c \
-../src/procedureArt.c 
+../src/procedureArt.c \
+../src/util.c 
 
 OBJS += \
 ./src/geometry.o \
-./src/procedureArt.o 
+./src/procedureArt.o \
+./src/util.o 
 
 C_DEPS += \
 ./src/geometry.d \
-./src/procedureArt.d 
+./src/procedureArt.d \
+./src/util.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

@@ -6,6 +6,10 @@ struct geometry_LineSegment
 {
 	int id;
 	float x1, y1, x2, y2;
+
+	float angle, rx, ry, rz;
+	float dx, dy, dz;
+	int ticks;
 };
 struct geometry_TreeNode
 {
@@ -36,7 +40,7 @@ int geometry_LineIntersect(struct geometry_LineSegment * line1, struct geometry_
 int inRange(struct geometry_LineSegment * line, float test);
 
 int slope(struct geometry_LineSegment * line, float * result);
-int displacement(struct geometry_LineSegment * line, float slope, float * result);
+int displacement(struct geometry_LineSegment * line, float * result);
 
 void geometry_WalkTree();
 void geometry_WalkTreeRecurse(struct geometry_TreeNode * node);
@@ -45,3 +49,5 @@ struct geometry_TreeNode * geometry_GetRootNode();
 
 int geometry_BoxTest(struct geometry_LineSegment * line, struct geometry_TreeNode * node);
 void geometry_CheckCollision(struct geometry_LineSegment * line, struct geometry_TreeNode * node, float * resultX, float * resultY);
+
+int length(struct geometry_LineSegment * line, float * result);

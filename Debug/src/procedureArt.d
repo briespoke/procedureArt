@@ -28,7 +28,7 @@ src/procedureArt.d src/procedureArt.o: ../src/procedureArt.c \
   /Library/Frameworks/SDL.framework/Versions/A/Headers/SDL_version.h \
   /System/Library/Frameworks/OpenGL.framework/Versions/A/Headers/gl.h \
   /System/Library/Frameworks/OpenGL.framework/Versions/A/Headers/glu.h \
-  ../src/geometry.h
+  ../src/util.h ../src/geometry.h
 
 /Library/Frameworks/SDL.framework/Versions/A/Headers/SDL.h:
 
@@ -87,5 +87,7 @@ src/procedureArt.d src/procedureArt.o: ../src/procedureArt.c \
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Headers/gl.h:
 
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Headers/glu.h:
+
+../src/util.h:
 
 ../src/geometry.h:

@@ -7,11 +7,12 @@
 #include <unistd.h>
 #include "geometry.h"
 #include <math.h>
+#include "util.h"
 
 
 struct geometry_TreeNode *geometry_Root = 0;
 int geometry_NodeCount = 0;
-int geometry_LineCount = 0;
+int geometry_LineCount;
 
 void geometry_init(float x1, float y1, float x2, float y2)
 {
@@ -180,8 +181,8 @@ int geometry_LineIntersect(struct geometry_LineSegment * line1, struct geometry_
 		}
 		else
 		{
-			displacement(line1, m1, &c1);
-			displacement(line2, m2, &c2);
+			displacement(line1, &c1);
+			displacement(line2, &c2);
 
 			float xIntersect = (c2 - c1) / (m1 - m2);
 
@@ -209,7 +210,7 @@ int geometry_LineIntersect(struct geometry_LineSegment * line1, struct geometry_
 			//line 1 is vertical
 			if (inRange(line2, line1->x1))
 			{
-				displacement(line2, m2, &c2);
+				displacement(line2, &c2);
 				* resultX = line1->x1;
 				* resultY = line1->x1 * m2 + c2;
 				return 1;
@@ -224,7 +225,7 @@ int geometry_LineIntersect(struct geometry_LineSegment * line1, struct geometry_
 			//line 2 is vertical
 			if (inRange(line1, line2->x1))
 			{
-				displacement(line1, m1, &c1);
+				displacement(line1, &c1);
 				* resultX = line2->x1;
 				* resultY = line2->x1 * m1 + c1;
 				return 1;
@@ -259,10 +260,22 @@ int slope(struct geometry_LineSegment * line, float * result)
 	}
 }
 
-int displacement(struct geometry_LineSegment * line, float slope, float * result)
+int length(struct geometry_LineSegment * line, float * result)
 {
+	float rise = line->y2 - line->y1;
+	float run = line->x2 - line->x1;
+
+	*result = sqrt(fabs((rise*rise)/(run*run)));
+
+	return 1;
+}
+
+int displacement(struct geometry_LineSegment * line, float * result)
+{
+	float m;
+	slope(line, &m);
 	//c = y - xm
-	* result = line->y1 - line->x1 * slope;
+	* result = line->y1 - line->x1 * m;
 	return 1;
 }
 
@@ -349,6 +362,42 @@ struct geometry_LineSegment * geometry_LineSegment_construct(float x1, float y1,
 	line->x2 = x2;
 	line->y2 = y2;
 	line->id = geometry_LineCount++;
+
+
+	line->angle = randRange(0.0, 360.0);
+	line->rx = randRange(-5.0, 5.0);
+	line->ry = randRange(-5.0, 5.0);
+	line->rz = randRange(-5.0, 5.0);
+	line->dx = randRange(-5.0, 5.0);
+	line->dy = randRange(-5.0, 5.0);
+	line->dz = 5.0;
+	line->ticks = (int)randRange(0.0, 300);
+
+	if (x1 == 0 && y1 == 0 && x2 == 0 && y2 == 0)
+	{
+		puts("Infinite subdivision");
+	}
+	return line;
+}
+struct geometry_LineSegment * geometry_LineSegment_constructSplit(struct geometry_LineSegment * init, float x1, float y1, float x2, float y2)
+{
+	struct geometry_LineSegment * line;
+	line = (struct geometry_LineSegment *) malloc(sizeof (struct geometry_LineSegment));
+	line->x1 = x1;
+	line->y1 = y1;
+	line->x2 = x2;
+	line->y2 = y2;
+	line->id = geometry_LineCount++;
+
+	line->angle = init->angle;
+	line->rx = init->rx;
+	line->ry = init->ry;
+	line->rz = init->rz;
+	line->dx = init->dx;
+	line->dy = init->dy;
+	line->dz = init->dz;
+	line->ticks = init->ticks;
+
 	if (x1 == 0 && y1 == 0 && x2 == 0 && y2 == 0)
 	{
 		puts("Infinite subdivision");
