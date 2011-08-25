@@ -1,12 +1,13 @@
 //#include <SDL.h>
-#include <gl.h>
-#include <glu.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "geometry.h"
 #include <math.h>
+
+#include "header.h"
+#include "geometry.h"
 #include "util.h"
 
 

@@ -7,16 +7,13 @@
  Description : Hello World in C, Ansi-style
  ============================================================================
  */
-
-#include <SDL.h>
-#include <gl.h>
-#include <glu.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <math.h>
 #include <time.h>
 
+#include "header.h"
 #include "util.h"
 #include "geometry.h"
 
@@ -192,7 +189,7 @@ int main(int argc, char *argv[])
 	SDL_Init(SDL_INIT_EVERYTHING);
 	SDL_Surface* screen;
 
-	screen = SDL_SetVideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, 32, SDL_FULLSCREEN | SDL_HWSURFACE | SDL_OPENGL);
+	screen = SDL_SetVideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, 32, SDL_HWSURFACE | SDL_OPENGL);
 	int running = 1;
 	Uint32 start;
 	Uint32 remainder;
