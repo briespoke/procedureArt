@@ -1,10 +1,10 @@
 /*
  ============================================================================
- Name        : procedure2.c
- Author      : 
- Version     :
- Copyright   : Your copyright notice
- Description : Hello World in C, Ansi-style
+ Name        : procedureArt.c
+ Author      : Brian Murphy
+ Version     : 0.1
+ Copyright   : Brian Murphy, 2011
+ Description : Procedural art generation test program
  ============================================================================
  */
 #include <stdio.h>
@@ -12,7 +12,6 @@
 #include <limits.h>
 #include <math.h>
 #include <time.h>
-#include <png.h>
 
 #include "header.h"
 #include "util.h"
@@ -54,10 +53,11 @@ void init()
 	//GLuint texture;
 	texture = SOIL_load_OGL_texture
 	(
-		"/Users/wavenger/Documents/workspace/procedureArt/Debug/building.png",
+//		"/Users/wavenger/Documents/workspace/procedureArt/Debug/building.png",
+		"C:\\Development\\procedureArt\\Debug\\building.png",
 		SOIL_LOAD_AUTO,
 		SOIL_CREATE_NEW_ID,
-		SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
+		SOIL_FLAG_MIPMAPS | SOIL_FLAG_TEXTURE_REPEATS | SOIL_FLAG_INVERT_Y | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
 	);
 
 	/* check for an error during the load process */
@@ -94,6 +94,7 @@ void procedureArt_DrawLines(float adjustedRotate)
 {
 	struct geometry_LineSegment *line;
 
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glBindTexture(GL_TEXTURE_2D, texture);
 
 	geometry_ResetLineIterator();
@@ -118,17 +119,16 @@ void procedureArt_DrawLines(float adjustedRotate)
 				glTranslatef(0.0, 0.0, line->dz);
 			}
 
-
 			float myLength;
 
 			length(line, & myLength);
 			//printf("%f\n", myLength);
 
 			glBegin(GL_TRIANGLE_STRIP);
-			glTexCoord2f(0.0, 0.0);                     glVertex3f(line->x1, line->y1, GROUND);
-			glTexCoord2f(myLength, 0.0);          glVertex3f(line->x2, line->y2, GROUND);
-			glTexCoord2f(myLength, 1.0); glVertex3f(line->x1, line->y1, GROUND + line->height);
-			glTexCoord2f(0.0, 1.0);            glVertex3f(line->x2, line->y2, GROUND + line->height);
+			glTexCoord2f(0.0, 0.0);         glVertex3f(line->x1, line->y1, GROUND);
+			glTexCoord2f(1.0, 0.0);         glVertex3f(line->x2, line->y2, GROUND);
+			glTexCoord2f(1.0, 1.0); 		glVertex3f(line->x1, line->y1, GROUND + line->height);
+			glTexCoord2f(0.0, 1.0);         glVertex3f(line->x2, line->y2, GROUND + line->height);
 			glEnd();
 
 			GLfloat light_ambient[] =
@@ -155,7 +155,6 @@ void display(Uint32 catchUp)
 	adjustedRotate = catchUp * ROTATE_FACTOR;
 	rotate1 += adjustedRotate;
 	rotate2 += adjustedRotate;
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	procedureArt_DrawLines(rotate1);
 }
 
@@ -272,12 +271,12 @@ int main(int argc, char *argv[])
 			}
 		}
 		display(remainder);
+		printf("%d\n", remainder);
 		SDL_GL_SwapBuffers();
 		remainder = SDL_GetTicks() - start;
 		if (1000/5 > remainder)
 		{
 				SDL_Delay(remainder);
-
 		}
 	}
 	SDL_Quit();
