@@ -252,7 +252,8 @@ int main(int argc, char *argv[])
 	screen = SDL_SetVideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, 32, SDL_HWSURFACE | SDL_OPENGL);
 	int running = 1;
 	Uint32 start;
-	Uint32 remainder;
+	Uint32 remainder = 0;
+	Uint32 catchup = 0;
 	init();
 
 	while (running)
@@ -270,13 +271,17 @@ int main(int argc, char *argv[])
 				break;
 			}
 		}
-		display(remainder);
-		printf("%d\n", remainder);
+		display(1000/60 + catchup);
 		SDL_GL_SwapBuffers();
 		remainder = SDL_GetTicks() - start;
-		if (1000/5 > remainder)
+		if (remainder < 1000 / 60)
 		{
-				SDL_Delay(remainder);
+			catchup = 0;
+			SDL_Delay(1000 / 60 - remainder);
+		}
+		else
+		{
+			catchup = remainder - 1000 / 60;
 		}
 	}
 	SDL_Quit();
